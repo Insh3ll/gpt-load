@@ -146,7 +146,7 @@ func (s *Server) ListKeysInGroup(c *gin.Context) {
 		return
 	}
 
-	searchKeyword := c.Query("key")
+	searchKeyword := c.Query("key_value")
 
 	query := s.KeyService.ListKeysInGroupQuery(groupID, statusFilter, searchKeyword)
 
@@ -190,6 +190,33 @@ func (s *Server) DeleteMultipleKeys(c *gin.Context) {
 	}
 
 	response.Success(c, result)
+}
+
+// DeleteMultipleKeysAsync handles deleting keys from a text block within a specific group using async task.
+func (s *Server) DeleteMultipleKeysAsync(c *gin.Context) {
+	var req KeyTextRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, app_errors.NewAPIError(app_errors.ErrInvalidJSON, err.Error()))
+		return
+	}
+
+	group, ok := s.findGroupByID(c, req.GroupID)
+	if !ok {
+		return
+	}
+
+	if err := validateKeysText(req.KeysText); err != nil {
+		response.Error(c, app_errors.NewAPIError(app_errors.ErrValidation, err.Error()))
+		return
+	}
+
+	taskStatus, err := s.KeyDeleteService.StartDeleteTask(group, req.KeysText)
+	if err != nil {
+		response.Error(c, app_errors.NewAPIError(app_errors.ErrTaskInProgress, err.Error()))
+		return
+	}
+
+	response.Success(c, taskStatus)
 }
 
 // RestoreMultipleKeys handles restoring keys from a text block within a specific group.

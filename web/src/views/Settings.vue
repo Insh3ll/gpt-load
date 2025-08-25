@@ -13,6 +13,7 @@ import {
   NInput,
   NInputNumber,
   NSpace,
+  NSwitch,
   NTooltip,
   useMessage,
   type FormItemRule,
@@ -21,7 +22,7 @@ import { ref } from "vue";
 
 const settingList = ref<SettingCategory[]>([]);
 const formRef = ref();
-const form = ref<Record<string, string | number>>({});
+const form = ref<Record<string, string | number | boolean>>({});
 const isSaving = ref(false);
 const message = useMessage();
 
@@ -38,12 +39,15 @@ async function fetchSettings() {
 }
 
 function initForm() {
-  form.value = settingList.value.reduce((acc: Record<string, string | number>, category) => {
-    category.settings?.forEach(setting => {
-      acc[setting.key] = setting.value;
-    });
-    return acc;
-  }, {});
+  form.value = settingList.value.reduce(
+    (acc: Record<string, string | number | boolean>, category) => {
+      category.settings?.forEach(setting => {
+        acc[setting.key] = setting.value;
+      });
+      return acc;
+    },
+    {}
+  );
 }
 
 async function handleSubmit() {
@@ -104,7 +108,7 @@ function generateValidationRules(item: Setting): FormItemRule[] {
           hoverable
           bordered
         >
-          <n-grid :x-gap="36" :y-gap="0" responsive="screen" cols="1 s:2 m:2 l:3 xl:3">
+          <n-grid :x-gap="36" :y-gap="0" responsive="screen" cols="1 s:2 m:2 l:4 xl:4">
             <n-grid-item
               v-for="item in category.settings"
               :key="item.key"
@@ -136,6 +140,11 @@ function generateValidationRules(item: Setting): FormItemRule[] {
                   placeholder="请输入数值"
                   clearable
                   style="width: 100%"
+                  size="small"
+                />
+                <n-switch
+                  v-else-if="item.type === 'bool'"
+                  v-model:value="form[item.key] as boolean"
                   size="small"
                 />
                 <proxy-keys-input

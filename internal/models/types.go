@@ -37,6 +37,14 @@ type GroupConfig struct {
 	KeyValidationIntervalMinutes *int    `json:"key_validation_interval_minutes,omitempty"`
 	KeyValidationConcurrency     *int    `json:"key_validation_concurrency,omitempty"`
 	KeyValidationTimeoutSeconds  *int    `json:"key_validation_timeout_seconds,omitempty"`
+	EnableRequestBodyLogging     *bool   `json:"enable_request_body_logging,omitempty"`
+}
+
+// HeaderRule defines a single rule for header manipulation.
+type HeaderRule struct {
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	Action string `json:"action"` // "set" or "remove"
 }
 
 // Group 对应 groups 表
@@ -55,13 +63,15 @@ type Group struct {
 	TestModel          string               `gorm:"type:varchar(255);not null" json:"test_model"`
 	ParamOverrides     datatypes.JSONMap    `gorm:"type:json" json:"param_overrides"`
 	Config             datatypes.JSONMap    `gorm:"type:json" json:"config"`
+	HeaderRules        datatypes.JSON       `gorm:"type:json" json:"header_rules"`
 	APIKeys            []APIKey             `gorm:"foreignKey:GroupID" json:"api_keys"`
 	LastValidatedAt    *time.Time           `json:"last_validated_at"`
 	CreatedAt          time.Time            `json:"created_at"`
 	UpdatedAt          time.Time            `json:"updated_at"`
 
 	// For cache
-	ProxyKeysMap map[string]struct{} `gorm:"-" json:"-"`
+	ProxyKeysMap   map[string]struct{} `gorm:"-" json:"-"`
+	HeaderRuleList []HeaderRule        `gorm:"-" json:"-"`
 }
 
 // APIKey 对应 api_keys 表
@@ -76,6 +86,12 @@ type APIKey struct {
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
+
+// RequestType 请求类型常量
+const (
+	RequestTypeRetry = "retry"
+	RequestTypeFinal = "final"
+)
 
 // RequestLog 对应 request_logs 表
 type RequestLog struct {
@@ -92,9 +108,10 @@ type RequestLog struct {
 	Duration     int64     `gorm:"not null" json:"duration_ms"`
 	ErrorMessage string    `gorm:"type:text" json:"error_message"`
 	UserAgent    string    `gorm:"type:varchar(512)" json:"user_agent"`
-	Retries      int       `gorm:"not null" json:"retries"`
+	RequestType  string    `gorm:"type:varchar(20);not null;default:'final';index" json:"request_type"`
 	UpstreamAddr string    `gorm:"type:varchar(500)" json:"upstream_addr"`
 	IsStream     bool      `gorm:"not null" json:"is_stream"`
+	RequestBody  string    `gorm:"type:text" json:"request_body"`
 }
 
 // StatCard 用于仪表盘的单个统计卡片数据

@@ -377,6 +377,11 @@ func (sm *SystemSettingsManager) ValidateGroupConfigOverrides(configMap map[stri
 					}
 				}
 			}
+		case reflect.Bool:
+			_, ok := value.(bool)
+			if !ok {
+				return fmt.Errorf("invalid type for %s: expected boolean, got %T", key, value)
+			}
 		default:
 			// Do not validate other types for group overrides
 		}

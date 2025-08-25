@@ -44,12 +44,31 @@ export const keysApi = {
     return res.data || [];
   },
 
+  // 复制分组
+  async copyGroup(
+    groupId: number,
+    copyData: {
+      copy_keys: "none" | "valid_only" | "all";
+    }
+  ): Promise<{
+    group: Group;
+  }> {
+    const res = await http.post(`/groups/${groupId}/copy`, copyData);
+    return res.data;
+  },
+
+  // 获取分组列表（简化版）
+  async listGroups(): Promise<Group[]> {
+    const res = await http.get("/groups/list");
+    return res.data || [];
+  },
+
   // 获取分组的密钥列表
   async getGroupKeys(params: {
     group_id: number;
     page: number;
     page_size: number;
-    key?: string;
+    key_value?: string;
     status?: KeyStatus;
   }): Promise<{
     items: APIKey[];
@@ -118,6 +137,15 @@ export const keysApi = {
     keys_text: string
   ): Promise<{ deleted_count: number; ignored_count: number; total_in_group: number }> {
     const res = await http.post("/keys/delete-multiple", {
+      group_id,
+      keys_text,
+    });
+    return res.data;
+  },
+
+  // 异步批量删除密钥
+  async deleteKeysAsync(group_id: number, keys_text: string): Promise<TaskInfo> {
+    const res = await http.post("/keys/delete-async", {
       group_id,
       keys_text,
     });
